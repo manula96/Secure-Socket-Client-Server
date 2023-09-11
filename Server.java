@@ -1,13 +1,12 @@
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.*;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 
 /**
  * The server, it will look for a client, receive a message and send one back.
@@ -42,6 +41,10 @@ public class Server {
         System.out.format("Listening for a client on port %d\n", port);
 
         try {
+
+            System.setProperty("javax.net.ssl.trustStore", "Certs/truststore.jks");
+            System.setProperty("javax.net.ssl.trustStorePassword", "Seng6250");
+
             // Load the server certificate and private key from a PKCS12 file (Server.pfx)
             KeyStore serverKeyStore = KeyStore.getInstance("PKCS12");
             serverKeyStore.load(ClassLoader.getSystemResourceAsStream("Certs/Server.pfx"), "Seng6250".toCharArray());
@@ -61,10 +64,38 @@ public class Server {
             SSLServerSocket serverSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port);
 
             // Set the server to require client authentication (optional)
-            //serverSocket.setNeedClientAuth(true);
+            serverSocket.setNeedClientAuth(true);
 
             // Accept incoming client connections
-            Socket socket = serverSocket.accept();
+            SSLSocket socket = (SSLSocket) serverSocket.accept();;
+
+            //------------- Client Authentication -------------------------
+            SSLSession sslSession = socket.getSession();
+            X509Certificate[] clientCertificates = (X509Certificate[]) sslSession.getPeerCertificates();
+            // Verify the client's certificate (you can implement your custom logic here)
+            // For example, checking the certificate chain and issuer
+
+            for (Certificate certificate : clientCertificates) {
+                // If it's an X.509 certificate, you can cast it for further inspection
+                if (certificate instanceof X509Certificate) {
+                    X509Certificate x509Certificate = (X509Certificate) certificate;
+
+                    // Check the issuer's name to verify it's issued by the CA with the name "Barry"
+                    String issuerName = x509Certificate.getIssuerX500Principal().getName();
+                    if (!issuerName.contains("CN=BarryCA")) {
+                        // Certificate is NOT trusted
+                        socket.close();
+                        System.out.println("\n*** CA not trusted ***");
+                        System.out.println("Client might be an intruder...\n"+ "Server is shutting down...\n");
+                        System.exit(0);
+                    }
+                    // Implement your certificate validation logic here
+                    // Example: Verify the certificate chain, check issuer, expiration, etc.
+                    // If validation fails, you can close the connection or take appropriate action
+                }
+            }
+
+            //---------------
 
             DataInputStream in = new DataInputStream(socket.getInputStream());
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
@@ -88,8 +119,10 @@ public class Server {
             in.close();
             out.close();
             socket.close();
+            System.out.println("Server is shutting down...");
+
         } catch (Exception e) {
-            // TODO: Add some better error handling
+            System.err.println("An error occurred: " + e.getMessage());
             e.printStackTrace();
         }
     }

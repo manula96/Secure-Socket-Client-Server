@@ -43,21 +43,12 @@ public class Client {
         String hostname = "localhost";  // Server hostname or IP
         int port = 2250; // The same port as used by the server
         System.out.format("Connecting to the server at %s:%d\n", hostname, port);
-/*
-        // Blindly trust all root CAs
-        TrustManager[] trustAllCerts = new TrustManager[] {
-            new X509TrustManager() {
-                public java.security.cert.X509Certificate[] getAcceptedIssuers() { 
-                    return new X509Certificate[0];
-                }
-                public void checkClientTrusted(X509Certificate[] certs, String authType) {} 
-                public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-            } 
-        };*/
-
-
 
         try {
+
+            System.setProperty("javax.net.ssl.trustStore", "Certs/truststore.jks");
+            System.setProperty("javax.net.ssl.trustStorePassword", "Seng6250");
+
             //System.setProperty("javax.net.debug", "ssl");
             // Load your client certificate and private key from a PKCS12 file (client.pfx)
             KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
@@ -98,6 +89,15 @@ public class Client {
             // Authenticate with the server using the client certificate and private key
             socket.startHandshake();
 
+/*            // Check the handshake status
+            SSLSession session = socket.getSession();
+            if (!session.isValid()) {
+                // Handle the handshake failure gracefully
+                System.err.println("Handshake failed. Server did not trust the connection");
+                // Exit the program without errors
+                System.exit(0);
+            }*/
+
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
             DataInputStream in = new DataInputStream(socket.getInputStream());
 
@@ -115,8 +115,11 @@ public class Client {
             out.close();
             socket.close();
         } catch (Exception e) {
-            // TODO: Add some better error handling
+            System.err.println("An error occurred: " + e.getMessage());
             e.printStackTrace();
-        }        
+            System.err.println("\n *** Handshake failed. Server did not trust the connection ***\n");
+            // Exit the program without errors
+            System.exit(0);
+        }
     }
 }

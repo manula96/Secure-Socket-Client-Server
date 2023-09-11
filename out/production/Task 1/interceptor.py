@@ -12,11 +12,44 @@ If you are on a linux or mac system, then you will probably have to run this pro
 privileges, e.g., sudo python3 interceptor.py
 """
 
-from scapy.all import sniff, Raw, TCP
+from scapy.all import sniff, Raw
+from scapy.layers.inet import TCP
+
+#
+# def print_tcp_payload(pkt):
+#     "Print the payload data from inside a TCP packet if it has one"
+#     if isinstance(pkt[TCP].payload, Raw):
+#         print("Captured a packet, here are the contents:")
+#         try:
+#             print(bytes.decode(pkt[TCP].payload.load))
+#         except UnicodeDecodeError:
+#             print("The victim's packets are encrypted, the message appears to be random bytes.")
+#         print()
+#
+#
+# if __name__ == "__main__":
+#     print("Starting interception of local traffic, now start the server then client.")
+#     # You may need to change the iface option, depending on your computer's setup
+#     # Sometimes remove the `iface='lo'` part altogether works better
+#     # capture = sniff(iface='lo', filter="port 2250 and host 127.0.0.1", prn=print_tcp_payload, count=20)
+#    # capture = sniff(filter="port 2250 and host 127.0.0.1", prn=print_tcp_payload)
+#
+#     try:
+#         # Capture packets on localhost (127.0.0.1) and port 2250
+#         capture = sniff(iface='lo', filter="port 2250 and host 127.0.0.1", prn=print_tcp_payload)
+#     except KeyboardInterrupt:
+#         print("Capture stopped by user.")
+
+from scapy.all import sniff, Raw
+from scapy.layers.inet import TCP
+import msvcrt
+
+# Global variable to indicate whether to capture packets
+capture_packets = True
 
 
 def print_tcp_payload(pkt):
-    "Print the payload data from inside a TCP packet if it has one"
+    """Print the payload data from inside a TCP packet if it has one"""
     if isinstance(pkt[TCP].payload, Raw):
         print("Captured a packet, here are the contents:")
         try:
@@ -26,8 +59,22 @@ def print_tcp_payload(pkt):
         print()
 
 
+def stop_capture():
+    global capture_packets
+    capture_packets = False
+    print("Capture stopped by user.")
+
+
 if __name__ == "__main__":
     print("Starting interception of local traffic, now start the server then client.")
-    # You may need to change the iface option, depending on your computer's setup
-    # Sometimes remove the `iface='lo'` part altogether works better
-    capture = sniff(iface='lo', filter="port 2250 and host 127.0.0.1", prn=print_tcp_payload, count=20)
+
+    print("Press Enter to stop packet capture...")
+
+    while capture_packets:
+        sniff(filter="port 2250 and host 127.0.0.1", prn=print_tcp_payload, count=1)
+
+        # Check for Enter key press to stop packet capture
+        if msvcrt.kbhit() and msvcrt.getch() == b'\r':
+            stop_capture()
+
+    print("Capture stopped by user.")
