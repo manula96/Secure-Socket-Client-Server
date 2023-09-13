@@ -9,35 +9,6 @@ import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 
-/**
- * The client, it will connect to the server, send a message and receive one back.
- * It is currently not secure, so to fix that, set up the SSL certificates and
- * add the following lines to the code where appropriate:
- * 
- * System.setProperty("javax.net.ssl.keyStore", "keystoreFile");
- * System.setProperty("javax.net.ssl.keyStorePassword", "password");
- * SSLContext sc = SSLContext.getInstance("SSL");
- * sc.init(null, trustAllCerts, new java.security.SecureRandom());
- * SSLSocketFactory factory = (SSLSocketFactory) sc.getSocketFactory();
- * SSLSocket s = (SSLSocket) factory.createSocket(hostname, port);
- * s.setTcpNoDelay(true);
- * s.startHandshake();
- * 
- * For further information refer to https://docs.oracle.com/en/java/javase/17/docs/api/java.base/javax/net/ssl/SSLSocket.html
- * 
- * In addition to the additional code, you will need to add the certificates to a keystore file via the 
- * keytool command, you will need the following commands:
- * 
- * keytool -keystore keystore -genkeypair -keyalg rsa
- * keytool -importkeystore -srckeystore keystore -destkeystore keystore.p12 -deststoretype PKCS12
- * keytool -import -trustcacerts -keystore test -file Certificate.crt -alias cert1
- * 
- * The first command creates a private and public key, the second exports the private key to be used by XCA,
- * and the third is used after creating the certificates using XCA and imports them into the keystore. The
- * third command must be run for each certificate created and exported from XCA, each time with a different
- * alias.
- */
-
 public class Client {
     public static void main(String[] args) {
         String hostname = "localhost";  // Server hostname or IP
@@ -47,25 +18,27 @@ public class Client {
         try {
 
             System.setProperty("javax.net.ssl.trustStore", "Certs/truststore.jks");
-            System.setProperty("javax.net.ssl.trustStorePassword", "Seng6250");
+            System.setProperty("javax.net.ssl.trustStorePassword", Variables.Password);
 
             //System.setProperty("javax.net.debug", "ssl");
             // Load your client certificate and private key from a PKCS12 file (client.pfx)
             KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
-            clientKeyStore.load(ClassLoader.getSystemResourceAsStream("Certs/Client.pfx"), "Seng6250".toCharArray());
+            clientKeyStore.load(ClassLoader.getSystemResourceAsStream("Certs/Client.pfx"), Variables.Password.toCharArray());
 
             // Initialize the KeyManagerFactory with the client's key store
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(clientKeyStore, "Seng6250".toCharArray());
+            keyManagerFactory.init(clientKeyStore, Variables.Password.toCharArray());
 
-            // Create an SSL context with a custom TrustManager
-            SSLContext sslContext = SSLContext.getInstance("SSL");
 
             // Load the CA certificate
             KeyStore trustStore = KeyStore.getInstance("PKCS12");
-            char[] trustStorePassword = "Seng6250".toCharArray();
+            char[] trustStorePassword = Variables.Password.toCharArray();
             trustStore.load(ClassLoader.getSystemResourceAsStream("Certs/Barry.p12"), trustStorePassword);
             //trustStore.load(ClassLoader.getSystemResourceAsStream("Certs/truststore.jks"), trustStorePassword);
+
+
+            // Create an SSL context with a custom TrustManager
+            SSLContext sslContext = SSLContext.getInstance("SSL");
 
 
             // Create a TrustManagerFactory for the CA trust store
