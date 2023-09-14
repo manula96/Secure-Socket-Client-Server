@@ -28,12 +28,20 @@ is running on. This means the program requires administrator access, so you may 
 and mac systems you will need to prepend sudo to the command used to run it. The following command
 runs the interceptor adversary:
 
+**HOWEVER, I HAVE USED WIRESHARK FOR THE REQUIRED TASK COMPLETION**
 ```sh
 python3 interceptor.py
 ```
 
 The interceptor will say that it is starting interception, this means you will be read to run the
-server then client. The server needs to be started first with:
+server then client. 
+
+Firstly, compile the java program:
+```sh
+javac *.java    
+```
+
+Then the server needs to be started first with:
 
 ```sh
 java Server.java

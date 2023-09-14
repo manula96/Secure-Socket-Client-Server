@@ -6,7 +6,10 @@ import java.net.Socket;
 import java.net.ServerSocket;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateRevokedException;
+import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 
 public class Server {
     public static void main(String[] args) {
@@ -50,9 +53,13 @@ public class Server {
                 if (certificate instanceof X509Certificate) {
                     X509Certificate x509Certificate = (X509Certificate) certificate;
 
+                    // Check if the certificate is expired
+                    boolean isExpired = isCertificateExpired(x509Certificate);
                     // Check the issuer's name to verify it's issued by the CA with the name "Barry"
                     String issuerName = x509Certificate.getIssuerX500Principal().getName();
-                    if (!issuerName.contains("CN=BarryCA ")) {
+                    boolean isIssuerValid = issuerName.contains("CN=BarryCA");
+
+                    if (!isIssuerValid || isExpired) {
                         // Certificate is NOT trusted
                         socket.close();
                         System.out.println("\n*** CA not trusted ***");
@@ -93,4 +100,19 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    //Check if client certificate is expired
+    private static boolean isCertificateExpired(X509Certificate certificate) {
+        try {
+            Date currentDate = new Date();
+
+            // Check if the certificate is expired by comparing the current date with the certificate's notAfter date
+            certificate.checkValidity(currentDate);
+
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
 }
